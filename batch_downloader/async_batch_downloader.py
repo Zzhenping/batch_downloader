@@ -1,10 +1,17 @@
-import aiohttp
-import asyncio
-from typing import Callable, List, Optional
+"""
+异步批量下载器，支持分块下载。
+"""
+
 import os
+from typing import Callable, List, Optional
+import asyncio
+import aiohttp
 from batch_downloader.base_downloader import BaseDownloader
 
 class AsyncBatchDownloader(BaseDownloader):
+    """
+    异步批量下载器，支持分块下载。
+    """
     def __init__(
         self,
         urls: List[str],

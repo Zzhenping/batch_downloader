@@ -1,11 +1,18 @@
+"""
+批量下载器，支持单个文件和分块下载。
+"""
+
 import os
 from typing import Callable, List, Optional
-import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import requests
 
 from batch_downloader.base_downloader import BaseDownloader
 
 class BatchDownloader(BaseDownloader):
+    """
+    批量下载器，支持单个文件和分块下载。
+    """
     def __init__(
         self,
         urls: List[str],
@@ -27,7 +34,7 @@ class BatchDownloader(BaseDownloader):
         """
         local_filename = self.get_local_filename(url, output_filename)
 
-        with requests.get(url, stream=True) as r:
+        with requests.get(url, stream=True, timeout=60) as r:
             r.raise_for_status()
             total_size = int(r.headers.get('content-length', 0))
             downloaded_size = 0
@@ -51,14 +58,14 @@ class BatchDownloader(BaseDownloader):
         local_filename = self.get_local_filename(url, output_filename)
 
         # 获取文件总大小
-        with requests.get(url, stream=True) as r:
+        with requests.get(url, stream=True, timeout=60) as r:
             r.raise_for_status()
             total_size = int(r.headers.get('content-length', 0))
 
         # 定义分块下载函数
         def download_chunk(start: int, end: int, chunk_id: int) -> None:
             headers = {"Range": f"bytes={start}-{end}"}
-            with requests.get(url, headers=headers, stream=True) as r:
+            with requests.get(url, headers=headers, stream=True, timeout=60) as r:
                 r.raise_for_status()
                 with open(f"{local_filename}.part{chunk_id}", 'wb') as f:
                     for chunk in r.iter_content(chunk_size=self.chunk_size):

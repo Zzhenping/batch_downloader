@@ -1,14 +1,15 @@
 from setuptools import setup, find_packages
+from pathlib import Path
 
 setup(
     name="batch_downloader",
-    version="0.1.0",
+    version="0.1.1",
     author="zhenpingzhan",
     author_email="stallzhan@gmail.com",
     description="A simple batch downloader with chunked downloads",
-    long_description=open("README.md").read(),
+    long_description=Path("README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
-    # url="https://github.com/yourusername/batch_downloader",
+    url="https://github.com/Zzhenping/batch_downloader",
     packages=find_packages(),
     install_requires=[
         "requests>=2.25.1",
