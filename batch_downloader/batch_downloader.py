@@ -11,7 +11,7 @@ from batch_downloader.base_downloader import BaseDownloader
 
 class BatchDownloader(BaseDownloader):
     """
-    批量下载器，支持单个文件和分块下载。
+    批量下载器，支持单个文件和分块下载，并增加断点续传功能。
     """
     def __init__(
         self,
@@ -30,16 +30,26 @@ class BatchDownloader(BaseDownloader):
         output_filename: Optional[str] = None,
     ) -> str:
         """
-        下载单个文件，支持自定义输出文件名。
+        下载单个文件，支持自定义输出文件名和断点续传。
         """
         local_filename = self.get_local_filename(url, output_filename)
 
-        with requests.get(url, stream=True, timeout=60) as r:
-            r.raise_for_status()
-            total_size = int(r.headers.get('content-length', 0))
+        # 检查文件是否已部分下载
+        if os.path.exists(local_filename):
+            downloaded_size = os.path.getsize(local_filename)
+        else:
             downloaded_size = 0
 
-            with open(local_filename, 'wb') as f:
+        headers = {}
+        if downloaded_size > 0:
+            headers["Range"] = f"bytes={downloaded_size}-"
+
+        with requests.get(url, headers=headers, stream=True, timeout=60) as r:
+            r.raise_for_status()
+            total_size = int(r.headers.get('content-length', 0)) + downloaded_size
+
+            # 以追加模式打开文件
+            with open(local_filename, 'ab') as f:
                 for chunk in r.iter_content(chunk_size=self.chunk_size):
                     f.write(chunk)
                     downloaded_size += len(chunk)
@@ -53,7 +63,7 @@ class BatchDownloader(BaseDownloader):
         output_filename: Optional[str] = None,
     ) -> str:
         """
-        对单个文件实行分块下载，加快下载速度。
+        对单个文件实行分块下载，加快下载速度，并支持断点续传。
         """
         local_filename = self.get_local_filename(url, output_filename)
 
@@ -64,10 +74,17 @@ class BatchDownloader(BaseDownloader):
 
         # 定义分块下载函数
         def download_chunk(start: int, end: int, chunk_id: int) -> None:
+            part_filename = f"{local_filename}.part{chunk_id}"
+            if os.path.exists(part_filename):
+                downloaded_size = os.path.getsize(part_filename)
+                if downloaded_size == end - start + 1:
+                    return  # 该分块已经下载完成
+                start += downloaded_size
+
             headers = {"Range": f"bytes={start}-{end}"}
             with requests.get(url, headers=headers, stream=True, timeout=60) as r:
                 r.raise_for_status()
-                with open(f"{local_filename}.part{chunk_id}", 'wb') as f:
+                with open(part_filename, 'ab') as f:
                     for chunk in r.iter_content(chunk_size=self.chunk_size):
                         f.write(chunk)
 
@@ -106,7 +123,7 @@ class BatchDownloader(BaseDownloader):
         chunked: bool = False,
     ) -> List[str]:
         """
-        下载所有文件，支持自定义输出文件名和分块下载。
+        下载所有文件，支持自定义输出文件名和分块下载，并支持断点续传。
         """
         if output_filenames is None:
             output_filenames = [None] * len(self.urls)
