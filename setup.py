@@ -3,7 +3,7 @@ from pathlib import Path
 
 setup(
     name="batch_downloader",
-    version="0.1.1",
+    version="0.1.2",
     author="zhenpingzhan",
     author_email="stallzhan@gmail.com",
     description="A simple batch downloader with chunked downloads",
